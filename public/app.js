@@ -3,7 +3,7 @@ import { BOOK3 } from './js/codebook3.js';
 import { ITEM_INFO, ADV_INFO, ACH_INFO, REFS, TIPS, idOf, markOf, toFullOf, growthPicks } from './js/items.js';
 import { BANDS } from './js/types.js';
 import { createFx } from './js/fx.js';
-import { scoreOf, formatScore, topPercent } from './js/rank.js';
+import { scoreOf, formatScore } from './js/rank.js';
 
 const $ = (id) => document.getElementById(id);
 const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -421,7 +421,7 @@ function showResult(code, r, sr = {}) {
   // シェアの文：帯・Lv・スコア・順位・強み
   const band = r.fog ? '霧の中の厨房' : BANDS[r.level - 1];
   const lvText = r.fog ? '' : ` Lv${r.level}${r.stars ? ` ${'★'.repeat(r.stars)}` : ''}${titleOf(r)}`;
-  const scoreText = score == null ? '' : `\nスコア ${formatScore(score)}${rank ? `（${rank.total.toLocaleString()}件中${rank.rank.toLocaleString()}位・上位${topPercent(rank.rank, rank.total)}%）` : ''}`;
+  const scoreText = score == null ? '' : `\nスコア ${formatScore(score)}${rank ? `（${rank.total.toLocaleString()}件中${rank.rank.toLocaleString()}位）` : ''}`;
   const best = Math.max(...r.perElement);
   const tops = r.perElement.filter((p) => p === best).length;
   const strongText = r.fog || best === 0 ? '' : tops === 5 ? '\n全部まんべんなく強い！' : `\n${r.perElement.map((p, i) => (p === best ? `「${ELEMENT_NAMES[i]}」` : '')).join('')}が強み！`;
@@ -609,8 +609,6 @@ async function drawCard(code, r, score, rank) {
   if (rank) {
     y += 60;
     line('順位', `${rank.total.toLocaleString()}件中 ${rank.rank.toLocaleString()}位`, y, { size: 40, vsize: 42, color: RED });
-    y += 64;
-    line('上位', `${topPercent(rank.rank, rank.total)}%`, y, { size: 40, vsize: 54, bold: true, color: RED });
   }
   y += 46;
   dashed(y);
