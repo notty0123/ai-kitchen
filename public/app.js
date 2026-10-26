@@ -343,12 +343,13 @@ function renderCard() {
   $('card-img').removeAttribute('src');
   $('card-wait').textContent = 'カードを描いています…';
   $('card-wait').hidden = false;
-  drawCard(mine.code, mine.r, mine.score, mine.rank).finally(() => { mine.drawing = false; }).then((url) => {
+  drawCard(mine.code, mine.r, mine.score, mine.rank).finally(() => { mine.drawing = false; }).then(({ blob, url }) => {
     if (last !== mine) {
       URL.revokeObjectURL(url); // 間に合わなかったカードは捨てる
       return;
     }
     mine.url = url;
+    mine.blob = blob;
     $('card-img').src = url;
     $('card-wait').hidden = true;
     $('save').disabled = false;
@@ -426,6 +427,7 @@ function showResult(code, r, sr = {}) {
   const strongText = r.fog || best === 0 ? '' : tops === 5 ? '\n全部まんべんなく強い！' : `\n${r.perElement.map((p, i) => (p === best ? `「${ELEMENT_NAMES[i]}」` : '')).join('')}が強み！`;
   const share = `わたしとAIでお店作ったら\n「${band}」${lvText}${scoreText}${strongText}\n#AIキッチン\n${location.origin}${location.pathname}`;
   $('share').href = `https://x.com/intent/post?text=${encodeURIComponent(share)}`;
+  last.shareText = share;
 }
 
 function countUp(node, to) {
@@ -455,6 +457,20 @@ async function loadImg(src) {
   await i.decode();
   return i;
 }
+
+// スマホでは共有メニューで、カード画像と文章をいっしょに渡す（X のシェア用 URL は画像を付けられないため）。
+// パソコンや、画像の共有ができないブラウザでは、今までどおり X の投稿画面を開く
+$('share').addEventListener('click', async (e) => {
+  if (!last?.blob || !navigator.canShare || !matchMedia('(pointer: coarse)').matches) return;
+  const file = new File([last.blob], 'ai-kitchen.png', { type: 'image/png' });
+  if (!navigator.canShare({ files: [file] })) return;
+  e.preventDefault();
+  try {
+    await navigator.share({ files: [file], text: last.shareText });
+  } catch (err) {
+    if (err?.name !== 'AbortError') window.open($('share').href, '_blank', 'noopener');
+  }
+});
 
 $('save').addEventListener('click', () => {
   if (!last?.url) return;
@@ -640,5 +656,5 @@ async function drawCard(code, r, score, rank) {
   ctx.restore();
 
   ctx.restore();
-  return new Promise((resolve, reject) => c.toBlob((blob) => (blob ? resolve(URL.createObjectURL(blob)) : reject(new Error('toBlob'))), 'image/png'));
+  return new Promise((resolve, reject) => c.toBlob((blob) => (blob ? resolve({ blob, url: URL.createObjectURL(blob) }) : reject(new Error('toBlob'))), 'image/png'));
 }
